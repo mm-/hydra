@@ -38,9 +38,10 @@ def ensure_empty_dest(dest):
                                  ensure_direct=True,
                                  max_pool_size=1,
                                  read_preference=ReadPreference.PRIMARY)
-       if collection.count() > 0:
-        die("destination must be empty!")
-
+    collection = client[dest['db']][dest['collection']]
+    if collection.count() > 0:
+    	#die("destination must be empty!")
+        log.info("Collection exists, proceeding anyway")
 
 def copy_collection_parent(sources, dest, state_db, args):
     """
@@ -174,12 +175,11 @@ if __name__ == '__main__':
         '--state-db', type=str, metavar='PATH', default=None,
         help='path to state file (defaults to ./<source_database>.<source_collection>.db)')
     args = parser.parse_args()
-
     # parse source and destination
     dest = utils.parse_mongo_url(args.dest)
     dest['user'] = args.user if 'user' in args else False
     dest['password'] = args.password if 'password' in args else False
-    dest['authDB'] = args.authdb if 'authdb' in args else False
+    dest['authDB'] = args.authDB if 'authDB' in args else False
 
     if os.path.exists(args.source):
         sources = utils.parse_source_file(args.source)
@@ -189,7 +189,7 @@ if __name__ == '__main__':
     for source in sources:
         source['user'] = args.user if 'user' in args else False
         source['password'] = args.password if 'password' in args else False
-        source['authDB'] = args.authdb if 'authdb' in args else False
+        source['authDB'] = args.authDB if 'authDB' in args else False
 
     # initialize sqlite database that holds our state (this may seem like overkill,
     # but it's actually needed to ensure proper synchronization of subprocesses)

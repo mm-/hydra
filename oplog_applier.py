@@ -195,14 +195,12 @@ def apply_oplog(source, dest, percent, state_path):
     dest_collection = dest_client[dest['db']][dest['collection']] 
 
     database = source_client['local']
-    database.authenticate('clone_collection','2dB9K6c5az')
 
     oplog = source_client['local']['oplog.rs']
 
     # print stats periodically
     stats.paused = True
     stats_greenlet = gevent.spawn(oplog_stats_worker, stats)
-
     # checkpoint oplog position to disk periodically
     checkpoint_greenlet = gevent.spawn(oplog_checkpoint_worker, stats, source, dest, state_db)
 

@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 import base64
-from bson import Binary
+from bson import Binary,ObjectId
+import bson
 import gevent
 import gevent.monkey
 import gevent.pool
@@ -51,14 +52,14 @@ class MismatchLogger(object):
             else:
                 filename = 'mismatches.txt' 
             cls._mismatches_file = open(filename, 'a', 0)
-        entry = {'_id': base64.b64encode(_id)}
+        entry = {'_id': base64.b64encode(str(_id))}
         cls._mismatches_file.write('%s\n' % json.dumps(entry))
 
 
     @classmethod
     def decode_mismatch_id(cls, _json):
         doc = json.loads(_json)
-        return Binary(base64.b64decode(doc['_id']), 0)
+        return ObjectId(base64.b64decode(doc['_id']))
 
 
 def _stats_worker(stats):
@@ -104,7 +105,7 @@ def _retry_id_worker(_id, source_collection, dest_collection, retries, retry_del
     # we've exhausted our retries, bail...
     stats.compared += 1
     stats.mismatches += 1
-    id_base64 = base64.b64encode(_id)
+    id_base64 = base64.b64encode(str(_id))
     log.error("MISMATCH: _id = %s", id_base64)
     MismatchLogger.log_mismatch(source_doc, _id)
 
@@ -306,6 +307,15 @@ if __name__ == '__main__':
         '--dest', type=str, required=True, metavar='URL',
         help='source to read from; see --source for format of URL')
     parser.add_argument(
+        '--user', type=str, required=False, metavar='USER',
+        help='User to auth with, not required')
+    parser.add_argument(
+        '--password', type=str, required=False, metavar='PASSWORD',
+        help='Pass word for the auth to use')
+    parser.add_argument(
+        '--authDB', type=str, required=False, metavar='AUTHDB',
+        help='Database to auth against')
+    parser.add_argument(
         '--percent', type=int, metavar='PCT', default=None,
         help='verify only PCT%% of data')
     parser.add_argument(
@@ -316,8 +326,11 @@ if __name__ == '__main__':
         help='verify documents touched by the last N ops')
 
     args = parser.parse_args()
-
+    
     dest = utils.parse_mongo_url(args.dest)
+    dest['user'] = args.user if 'user' in args else False
+    dest['password'] = args.password if 'password' in args else False
+    dest['authDB'] = args.authDB if 'authDB' in args else False
     if os.path.exists(args.source):
         sources = utils.parse_source_file(args.source)
     else:
@@ -329,6 +342,10 @@ if __name__ == '__main__':
     # finally, compare stuff!
     processes = []
     for source in sources:
+	source['user'] = args.user if 'user' in args else False
+        source['password'] = args.password if 'password' in args else False
+        source['authDB'] = args.authDB if 'authDB' in args else False
+
         name = "%s:%s" % (source['host'], source['port'])
         process = Process(target=compare_collections,
                           name=name,

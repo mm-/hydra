@@ -64,7 +64,6 @@ def mongo_connect(host, port, user, password, authDB, ensure_direct=False, secon
     if slave_okay is not None:
         options['slave_okay'] = slave_okay
     client = pymongo.MongoClient(**options)
-    
     if authDB:
         # try and auth to the provided database error otherwise
         try:

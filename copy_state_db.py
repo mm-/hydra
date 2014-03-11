@@ -21,7 +21,6 @@ CREATE TABLE {table_name}
 def _mongo_dict_to_str(d):
     if 'id_source' in d:
         return d['id_source']['shard_name']
-
     return "%s:%d/%s/%s" % (d['host'], d['port'], d['db'], d['collection'])
 
 
